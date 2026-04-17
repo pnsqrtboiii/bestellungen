@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23a5c970'/%3E%3Cpath d='M45 125 h90 v10 h-90 z M55 125 l10 -45 h50 l10 45 M75 80 h30 v10 h-30 z' fill='white'/%3E%3Crect x='65' y='65' width='50' height='20' rx='3' fill='white'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23a5c970'/%3E%3Cpath d='M8 22 h16 v2 h-16 z M10 22 l2 -8 h8 l2 8 M13 14 h6 v2 h-6 z' fill='white'/%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#a5c970" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes" />
+    <title>BestellManager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+      :root {
+        --gruen: #a5c970;
+        --gruen-dunkel: #8db857;
+        --gruen-hell: #f2f8ea;
+        --gruen-border: #c8e0a0;
+        --weiss: #ffffff;
+        --hintergrund: #f5f7fa;
+        --text-haupt: #1a2c3e;
+        --text-meta: #6b7280;
+        --text-label: #4a5b6e;
+        --border: #e9edf2;
+        --border-input: #cfdde6;
+        --offen-bg: #fff3d9;
+        --offen-farbe: #d97706;
+        --offen-border: #ff9800;
+        --erledigt-bg: #e6f4e9;
+        --erledigt-farbe: #166534;
+        --erledigt-border: #28a745;
+        --topbar-hoehe: 58px;
+        --bottomnav-hoehe: 68px;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: var(--hintergrund);
+        color: var(--text-haupt);
+        overflow: hidden;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ===== TOP-BAR ===== */
+      .top-bar {
+        flex-shrink: 0;
+        height: var(--topbar-hoehe);
+        padding-top: env(safe-area-inset-top);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 16px;
+        padding-right: 16px;
+        background: var(--weiss);
+        border-bottom: 2px solid var(--gruen);
+        z-index: 100;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--gruen);
+      }
+
+      /* ===== VIEW WRAPPER ===== */
+      .views-wrapper {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .view {
+        display: none;
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .view.active-view { display: flex; flex-direction: column; }
+
+      /* ===== BOTTOM NAV ===== */
+      .bottom-nav {
+        flex-shrink: 0;
+        background: var(--weiss);
+        display: flex;
+        border-top: 2px solid var(--border);
+        z-index: 100;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        border-top: 3px solid transparent;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-meta);
+        cursor: pointer;
+        padding: 10px 0 8px;
+        flex: 1;
+        transition: all 0.2s;
+        border-radius: 0;
+        margin-top: -2px;
+      }
+      .nav-item.active { color: var(--gruen); border-top-color: var(--gruen); }
+      .nav-item.has-new { animation: navPulse 1.8s ease-in-out 3; }
+      @keyframes navPulse {
+        0%,100% { transform: scale(1); }
+        40%  { transform: scale(1.12); }
+        70%  { transform: scale(0.95); }
+      }
+      .nav-icon { font-size: 1.4rem; }
+
+      /* ===== KASSE VIEW: 2-SPALTEN-LAYOUT ===== */
+      #kasseView {
+        display: none;
+      }
+      #kasseView.active-view {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        grid-template-columns: 1fr;
+      }
+
+      /* Namenszeile oben */
+      .kasse-header {
+        background: var(--weiss);
+        border-bottom: 1px solid var(--border);
+        padding: 10px 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .kasse-header input {
+        flex: 1;
+        padding: 10px 14px;
+        font-size: 1rem;
+        font-weight: 600;
+        border: 1.5px solid var(--border-input);
+        border-radius: 10px;
+        background: var(--weiss);
+        font-family: inherit;
+        color: var(--text-haupt);
+        transition: border-color 0.15s;
+      }
+      .kasse-header input:focus {
+        outline: none;
+        border-color: var(--gruen);
+        box-shadow: 0 0 0 3px rgba(165,201,112,0.15);
+      }
+      .kasse-header .reset-btn {
+        background: #f1f3f5;
+        color: var(--text-meta);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+      }
+      .kasse-header .reset-btn:active { background: #e2e6ea; transform: scale(0.97); }
+
+      /* Haupt-Bereich: Grid links / Warenkorb rechts */
+      .kasse-body {
+        display: grid;
+        grid-template-columns: 60% 40%;
+        overflow: hidden;
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* ===== PRODUKTGRID (links) ===== */
+      .produkt-seite {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-right: 2px solid var(--border);
+        background: var(--hintergrund);
+      }
+
+      .kategorie-bar {
+        display: flex;
+        gap: 6px;
+        padding: 8px 10px;
+        background: var(--weiss);
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+        flex-shrink: 0;
+        scrollbar-width: none;
+      }
+      .kategorie-bar::-webkit-scrollbar { display: none; }
+
+      .kat-pill {
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        border: 1.5px solid var(--border-input);
+        background: var(--weiss);
+        color: var(--text-meta);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .kat-pill:active { transform: scale(0.95); }
+      .kat-pill.aktiv {
+        background: var(--gruen);
+        border-color: var(--gruen);
+        color: white;
+      }
+
+      .produkt-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 10px;
+        overflow-y: auto;
+        align-content: start;
+        flex: 1;
+      }
+
+      .produkt-btn {
+        background: var(--weiss);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+        min-height: 76px;
+        position: relative;
+        overflow: hidden;
+      }
+      .produkt-btn:active {
+        transform: scale(0.94);
+        background: var(--gruen-hell);
+        border-color: var(--gruen);
+      }
+      .produkt-btn.im-warenkorb {
+        border-color: var(--gruen);
+        background: var(--gruen-hell);
+      }
+      .produkt-btn.im-warenkorb::after {
+        content: attr(data-menge);
+        position: absolute;
+        top: 5px;
+        right: 7px;
+        background: var(--gruen);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 800;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .produkt-btn-name {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-haupt);
+        text-align: center;
+        line-height: 1.25;
+      }
+      .produkt-btn-preis {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-meta);
+      }
+
+      /* ===== WARENKORB (rechts) ===== */
+      .warenkorb-seite {
+        display: flex;
+        flex-direction: column;
+        background: var(--weiss);
+        overflow: hidden;
+      }
+
+      .warenkorb-liste {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .warenkorb-leer {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #c0cdd8;
+        gap: 8px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        text-align: center;
+        padding: 16px;
+      }
+
+      .warenkorb-item {
+        background: var(--hintergrund);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        animation: slideIn 0.15s ease;
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateX(8px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+
+      .wi-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .wi-name {
+        flex: 1;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-haupt);
+        line-height: 1.3;
+      }
+      .wi-entfernen {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        transition: color 0.15s;
+        flex-shrink: 0;
+      }
+      .wi-entfernen:active { color: #dc3545; transform: scale(0.9); }
+
+      .wi-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .wi-menge-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        background: var(--weiss);
+        border: 1.5px solid var(--border-input);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .wi-menge-btn {
+        background: none;
+        border: none;
+        color: var(--gruen-dunkel);
+        font-size: 1rem;
+        font-weight: 800;
+        width: 30px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.12s;
+        font-family: inherit;
+      }
+      .wi-menge-btn:active { background: var(--gruen-hell); transform: scale(0.9); }
+      .wi-menge-zahl {
+        min-width: 24px;
+        text-align: center;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--text-haupt);
+        border-left: 1px solid var(--border-input);
+        border-right: 1px solid var(--border-input);
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wi-preis {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--gruen-dunkel);
+      }
+
+      /* Sonderwunsch-Eingabe pro Artikel */
+      .wi-sonder {
+        width: 100%;
+        padding: 5px 8px;
+        font-size: 0.75rem;
+        border: 1px solid var(--border-input);
+        border-radius: 7px;
+        background: var(--weiss);
+        font-family: inherit;
+        color: var(--text-haupt);
+        resize: none;
+      }
+      .wi-sonder:focus { outline: none; border-color: var(--gruen); }
+
+      /* ===== KASSE-FOOTER ===== */
+      .kasse-footer {
+        border-top: 2px solid var(--border);
+        padding: 10px 10px;
+        flex-shrink: 0;
+        background: var(--weiss);
+      }
+
+      .kasse-gesamt {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8px;
+        padding: 0 2px;
+      }
+      .kasse-gesamt-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-meta);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .kasse-gesamt-betrag {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-haupt);
+      }
+
+      /* Quick-Cash im Footer */
+      .kasse-cash-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        margin-bottom: 8px;
+      }
+      .cash-btn {
+        background: #f8f9fc;
+        border: 1.5px solid var(--border-input);
+        border-radius: 8px;
+        padding: 8px 4px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-haupt);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.12s;
+        font-family: inherit;
+      }
+      .cash-btn:active { background: var(--gruen-hell); border-color: var(--gruen); transform: scale(0.95); }
+      .cash-btn.aktiv-cash { background: var(--gruen-hell); border-color: var(--gruen); color: #3a5a1a; }
+
+      .kasse-erhalten-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .erhalten-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-meta);
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .erhalten-input {
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        border: 1.5px solid var(--border-input);
+        border-radius: 8px;
+        background: var(--weiss);
+        font-family: inherit;
+        color: var(--text-haupt);
+        text-align: right;
+      }
+      .erhalten-input:focus { outline: none; border-color: var(--gruen); }
+
+      .rueckgeld-zeile {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 8px;
+        background: var(--gruen-hell);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid var(--gruen-border);
+      }
+      .rueckgeld-label { font-size: 0.75rem; font-weight: 600; color: #3a5a1a; }
+      .rueckgeld-betrag { font-size: 1rem; font-weight: 800; color: #3a5a1a; }
+      .rueckgeld-zeile.negativ { background: #fee2e2; border-color: #fca5a5; }
+      .rueckgeld-zeile.negativ .rueckgeld-label,
+      .rueckgeld-zeile.negativ .rueckgeld-betrag { color: #dc3545; }
+
+      .kassieren-btn {
+        width: 100%;
+        padding: 14px;
+        font-size: 1rem;
+        font-weight: 800;
+        background: var(--gruen);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s, transform 0.1s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .kassieren-btn:active { background: var(--gruen-dunkel); transform: scale(0.98); }
+      .kassieren-btn.inaktiv { background: #c8d8b8; cursor: default; opacity: 0.6; }
+      .kassieren-btn.inaktiv:active { transform: none; background: #c8d8b8; }
+
+      /* ===== BESTELLLISTE VIEW ===== */
+      #activeOrdersView {
+        overflow-y: auto;
+      }
+      #activeOrdersView.active-view {
+        display: block;
+        overflow-y: auto;
+      }
+
+      .list-wrap {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 14px 12px;
+      }
+
+      .card {
+        background: var(--weiss);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 14px;
+        color: var(--gruen);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .pill-filter {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border: 1.5px solid var(--border-input);
+        background: var(--weiss);
+        color: var(--text-meta);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .pill.active-pill { background: var(--gruen); border-color: var(--gruen); color: white; }
+
+      .order-list { display: flex; flex-direction: column; gap: 12px; }
+
+      .order-card {
+        background: var(--weiss);
+        border-radius: 14px;
+        border: 2px solid var(--border);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .order-card.unprocessed { border-color: var(--offen-border); background: #fffdfb; }
+      .order-card.processed   { border-color: var(--erledigt-border); background: #fafffe; }
+
+      .order-card-content { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .order-meta { display: flex; flex-direction: column; gap: 2px; }
+      .customer-name {
+        font-weight: 800;
+        font-size: 1rem;
+        background: #f2f4f8;
+        padding: 3px 10px;
+        border-radius: 20px;
+      }
+      .order-time { font-size: 0.7rem; color: var(--text-meta); padding-left: 4px; }
+      .header-right { display: flex; gap: 4px; }
+
+      .status-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+      .status-badge.open { background: var(--offen-bg); color: var(--offen-farbe); border: 1.5px solid var(--offen-border); }
+      .status-badge.processed { background: var(--erledigt-bg); color: var(--erledigt-farbe); border: 1.5px solid var(--erledigt-border); }
+
+      .icon-btn {
+        background: none;
+        border: none;
+        font-size: 1.1rem;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .icon-btn:active { background: #f1f5f9; color: #334155; }
+      .icon-btn.delete:active { color: #dc3545; background: #fee2e2; }
+
+      .order-artikel-liste {
+        background: #fcfcfd;
+        border-radius: 8px;
+        border-left: 3px solid var(--gruen);
+        padding: 8px 10px;
+        font-size: 0.82rem;
+        line-height: 1.7;
+      }
+      .order-artikel-liste .artikel-zeile {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .order-artikel-liste .artikel-zeile .preis-col {
+        color: var(--text-meta);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .sonder-zeile {
+        font-size: 0.75rem;
+        color: var(--text-meta);
+        padding-left: 10px;
+        font-style: italic;
+      }
+
+      .payment-info {
+        background: var(--gruen-hell);
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .payment-info span {
+        background: white;
+        padding: 3px 9px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-haupt);
+      }
+
+      .mark-processed-btn {
+        width: 100%;
+        min-height: 50px;
+        padding: 10px 16px;
+        background: rgba(255,152,0,0.08);
+        color: var(--offen-farbe);
+        border: none;
+        border-top: 1.5px solid var(--offen-border);
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+      }
+      .mark-processed-btn:active { background: var(--offen-border); color: white; }
+      .mark-processed-btn.done {
+        background: #f0fdf4;
+        color: var(--text-meta);
+        border-top-color: var(--erledigt-border);
+        cursor: default;
+        min-height: 38px;
+        font-size: 0.82rem;
+      }
+      .mark-processed-btn.done i { color: var(--erledigt-border); }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #94a3b8;
+        border: 1.5px dashed var(--border-input);
+        border-radius: 14px;
+      }
+      .empty-state p { margin: 10px 0 18px; font-size: 0.9rem; line-height: 1.5; }
+      .empty-state .btn-goto {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--gruen);
+        color: white;
+        border: none;
+        padding: 11px 22px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .alle-erledigen-btn {
+        background: var(--gruen-hell);
+        color: #3a5a1a;
+        border: 1.5px solid var(--gruen-border);
+        font-size: 0.78rem;
+        padding: 7px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+      }
+      .alle-erledigen-btn:active { background: var(--gruen); color: white; }
+
+      /* ===== TOAST ===== */
+      .toast-msg {
+        position: fixed;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e2a32;
+        color: white;
+        padding: 10px 22px;
+        border-radius: 40px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        z-index: 9000;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        white-space: nowrap;
+        max-width: 90vw;
+        text-align: center;
+      }
+
+      /* ===== MODALS ===== */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(26,44,62,0.75);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .modal-content {
+        background: var(--weiss);
+        border-radius: 16px;
+        max-width: 440px;
+        width: 100%;
+        padding: 22px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      }
+      .modal-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--gruen);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .modal-msg {
+        font-size: 0.95rem;
+        color: var(--text-label);
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+      .modal-btn-group { display: flex; gap: 10px; }
+      .modal-btn-group button { flex: 1; padding: 12px; min-height: 48px; font-family: inherit; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; font-size: 0.92rem; transition: background 0.15s, transform 0.1s; }
+      .modal-btn-group button:active { transform: scale(0.97); }
+      .btn-secondary { background: #f1f3f5; color: #2c3e2f; border: 1px solid #dce2e8 !important; }
+      .btn-secondary:active { background: #e2e6ea !important; }
+
+      .toggle-group { display: flex; flex-direction: column; gap: 12px; }
+      .toggle-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #f8f9fc;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 0.92rem;
+        transition: background 0.15s;
+      }
+      .toggle-item:active { background: #f1f5f9; }
+      .toggle-item input { display: none; }
+      .toggle-slider {
+        width: 44px; height: 24px;
+        background: #d1d5db;
+        border-radius: 999px;
+        position: relative;
+        transition: 0.25s;
+        flex-shrink: 0;
+      }
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        width: 18px; height: 18px;
+        left: 3px; top: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: 0.25s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      }
+      .toggle-item input:checked + .toggle-slider { background: var(--gruen); }
+      .toggle-item input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+      /* ===== PRINT ===== */
+      .print-area { display: none; }
+      @media print {
+        body * { visibility: hidden; }
+        .print-area, .print-area * { visibility: visible; }
+        .print-area { display: block; position: absolute; top: 0; left: 0; width: 100%; padding: 20px; background: white; }
+      }
+
+      /* ===== TABLET: Größere Produkt-Buttons ===== */
+      @media (min-width: 600px) {
+        .produkt-grid { grid-template-columns: repeat(3, 1fr); }
+        .produkt-btn { min-height: 88px; }
+      }
+      @media (min-width: 900px) {
+        .kasse-body { grid-template-columns: 65% 35%; }
+        .produkt-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
+        .produkt-btn { min-height: 96px; }
+        .order-card { flex-direction: row; }
+        .order-card-content { flex: 1; }
+        .mark-processed-btn {
+          width: 90px;
+          min-height: 100%;
+          border-top: none;
+          border-left: 1.5px solid var(--offen-border);
+          flex-direction: column;
+          border-radius: 0;
+          font-size: 0.78rem;
+          flex-shrink: 0;
+        }
+        .mark-processed-btn i { margin-bottom: 4px; }
+        .mark-processed-btn.done { border-left: 1.5px dashed var(--erledigt-border); }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- TOP-BAR -->
+    <header class="top-bar" id="globalTopBar">
+      <i class="fas fa-pen-to-square"></i>
+      <span id="topBarTitle">Bestellung erfassen</span>
+    </header>
+
+    <!-- VIEWS -->
+    <div class="views-wrapper">
+
+      <!-- ===== VIEW 1: KASSE ===== -->
+      <div id="kasseView" class="view active-view">
+
+        <!-- Namenszeile -->
+        <div class="kasse-header">
+          <input type="text" id="guestName" placeholder="Name *" autocomplete="off" />
+          <button class="reset-btn" id="resetFormBtn"><i class="fas fa-rotate-left"></i> Reset</button>
+        </div>
+
+        <!-- Grid + Warenkorb -->
+        <div class="kasse-body">
+
+          <!-- LINKS: Produkte -->
+          <div class="produkt-seite">
+            <div class="kategorie-bar" id="kategorieBar"></div>
+            <div class="produkt-grid" id="produktGrid"></div>
+          </div>
+
+          <!-- RECHTS: Warenkorb -->
+          <div class="warenkorb-seite">
+            <div class="warenkorb-liste" id="warenkorbListe">
+              <div class="warenkorb-leer" id="warenkorbLeer">
+                <i class="fas fa-basket-shopping" style="font-size:2rem;opacity:0.3"></i>
+                <span>Produkte antippen<br>zum Hinzufügen</span>
+              </div>
+            </div>
+
+            <!-- Footer: Gesamt + Kasse -->
+            <div class="kasse-footer">
+              <div class="kasse-gesamt">
+                <span class="kasse-gesamt-label">Gesamt</span>
+                <span class="kasse-gesamt-betrag" id="gesamtBetrag">0,00 €</span>
+              </div>
+
+              <div class="kasse-cash-row">
+                <button class="cash-btn" data-value="1">1 €</button>
+                <button class="cash-btn" data-value="2">2 €</button>
+                <button class="cash-btn" data-value="5">5 €</button>
+                <button class="cash-btn" data-value="10">10 €</button>
+              </div>
+
+              <div class="kasse-erhalten-row">
+                <span class="erhalten-label">Erhalten</span>
+                <input type="number" step="0.01" id="receivedAmount" class="erhalten-input" placeholder="0,00" />
+              </div>
+
+              <div class="rueckgeld-zeile" id="rueckgeldZeile">
+                <span class="rueckgeld-label"><i class="fas fa-exchange-alt"></i> Rückgeld</span>
+                <span class="rueckgeld-betrag" id="rueckgeldBetrag">0,00 €</span>
+              </div>
+
+              <button class="kassieren-btn" id="saveOrderBtn">
+                <i class="fas fa-check"></i> Bestellung aufnehmen
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /#kasseView -->
+
+      <!-- ===== VIEW 2: BESTELLLISTE ===== -->
+      <div id="activeOrdersView" class="view">
+        <div class="list-wrap">
+          <div class="card">
+            <div class="list-header">
+              <div class="card-title" style="margin-bottom:0">
+                <i class="fas fa-receipt"></i> Bestellungen
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="alle-erledigen-btn" id="alleErledigtBtn">
+                  <i class="fas fa-check-double"></i> Alle erledigen
+                </button>
+                <button id="pdfActiveBtn" style="background:#fff8f0;border:1.5px solid #ffd0a0;color:#b45309;font-size:0.78rem;padding:7px 12px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+                  <i class="fas fa-file-pdf"></i> PDF
+                </button>
+              </div>
+            </div>
+            <div class="pill-filter">
+              <button class="pill active-pill" data-filter="alle">Alle</button>
+              <button class="pill" data-filter="offen">Offen</button>
+              <button class="pill" data-filter="erledigt">Erledigt</button>
+            </div>
+            <div id="activeOrdersContainer" class="order-list"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.views-wrapper -->
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="kasseView">
+        <span class="nav-icon"><i class="fas fa-cash-register"></i></span>
+        <span>Kasse</span>
+      </button>
+      <button class="nav-item" data-view="activeOrdersView">
+        <span class="nav-icon"><i class="fas fa-receipt"></i></span>
+        <span>Bestellungen</span>
+      </button>
+    </nav>
+
+    <div id="toastMsg" class="toast-msg"></div>
+    <div id="printSection" class="print-area"></div>
+
+    <!-- EXPORT MODAL -->
+    <div id="exportModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-title"><i class="fas fa-file-pdf"></i> PDF Export</div>
+        <p class="modal-msg">Welche Infos sollen in den Export?</p>
+        <div class="toggle-group" style="margin-bottom:20px">
+          <label class="toggle-item">
+            <span>Namen einbeziehen</span>
+            <input type="checkbox" id="includeName" /><span class="toggle-slider"></span>
+          </label>
+          <label class="toggle-item">
+            <span>Sonderwünsche einbeziehen</span>
+            <input type="checkbox" id="includeSpecial" /><span class="toggle-slider"></span>
+          </label>
+          <label class="toggle-item">
+            <span>Zahlungsinfos (Erhalten / Rückgeld)</span>
+            <input type="checkbox" id="includePayment" checked /><span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="modal-btn-group">
+          <button id="cancelExportBtn" class="btn-secondary">Abbrechen</button>
+          <button id="generatePDFBtn" style="background:var(--gruen);color:white">PDF erstellen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <div class="modal-title">
+          <i class="fas fa-question-circle"></i>
+          <span id="confirmModalTitle">Bestätigung</span>
+        </div>
+        <p id="confirmModalMessage" class="modal-msg"></p>
+        <div class="modal-btn-group">
+          <button id="confirmModalCancel" class="btn-secondary">Abbrechen</button>
+          <button id="confirmModalConfirm" style="background:#dc3545;color:white">Bestätigen</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ========== PRODUKTDATEN MIT KATEGORIEN ==========
+      const PRODUKTE = [
+        { name: "Menü",               kurzname: "Menü",       preis: 1.5,  kat: "Gerichte" },
+        { name: "Flammkuchen",        kurzname: "Flammkuchen",preis: 1.0,  kat: "Gerichte" },
+        { name: "Pizza",              kurzname: "Pizza",      preis: 1.0,  kat: "Gerichte" },
+        { name: "Curly Fries & Mayo", kurzname: "Curly Fries",preis: 1.0,  kat: "Gerichte" },
+        { name: "Chili Cheese Sandwich", kurzname: "Chili Ch.",preis: 1.0, kat: "Gerichte" },
+        { name: "Eistee",             kurzname: "Eistee",     preis: 1.0,  kat: "Getränke" },
+        { name: "Saftschorle",        kurzname: "Schorle",    preis: 1.0,  kat: "Getränke" },
+        { name: "Tee (versch. Sorten)",kurzname: "Tee",       preis: 0.5,  kat: "Getränke" },
+        { name: "Chai Latte",         kurzname: "Chai Latte", preis: 1.0,  kat: "Getränke" },
+        { name: "Frucht Shake",       kurzname: "Shake",      preis: 2.0,  kat: "Getränke" },
+        { name: "Wasser",             kurzname: "Wasser",     preis: 0.0,  kat: "Getränke" },
+        { name: "Studentenfutter",    kurzname: "Studentenf.",preis: 0.5,  kat: "Snacks"   },
+        { name: "Mini-Brezeln",       kurzname: "Brezeln",    preis: 0.3,  kat: "Snacks"   },
+        { name: "Erdnüsse",           kurzname: "Erdnüsse",   preis: 0.5,  kat: "Snacks"   },
+      ];
+
+      const KATEGORIEN = ["Alle", "Gerichte", "Getränke", "Snacks"];
+
+      // ========== STATE ==========
+      let bestellungen   = [];
+      let warenkorb      = []; // [{produktName, preis, menge, sonderwunsch}]
+      let aktiverFilter  = "alle";
+      let aktiveKat      = "Alle";
+      let editModeId     = null;
+      let nextId         = 1;
+      let confirmCallback = null;
+
+      // DOM
+      const guestNameInput  = document.getElementById("guestName");
+      const receivedInput   = document.getElementById("receivedAmount");
+      const saveBtn         = document.getElementById("saveOrderBtn");
+      const resetFormBtn    = document.getElementById("resetFormBtn");
+      const gesamtBetragEl  = document.getElementById("gesamtBetrag");
+      const rueckgeldZeile  = document.getElementById("rueckgeldZeile");
+      const rueckgeldEl     = document.getElementById("rueckgeldBetrag");
+      const warenkorbListe  = document.getElementById("warenkorbListe");
+      const warenkorbLeer   = document.getElementById("warenkorbLeer");
+      const produktGrid     = document.getElementById("produktGrid");
+      const kategorieBar    = document.getElementById("kategorieBar");
+      const activeContainer = document.getElementById("activeOrdersContainer");
+
+      // ========== TOAST ==========
+      function showToast(msg, dur = 2200) {
+        const t = document.getElementById("toastMsg");
+        t.textContent = msg;
+        t.style.opacity = "1";
+        setTimeout(() => { t.style.opacity = "0"; }, dur);
+      }
+
+      // ========== FORMAT ==========
+      function fmt(val) { return val.toFixed(2).replace(".", ",") + " €"; }
+      function formatTime(ts) {
+        if (!ts) return "";
+        const d = new Date(ts);
+        return d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr";
+      }
+
+      // ========== LOCAL STORAGE ==========
+      function saveLS() { localStorage.setItem("gastro_bestellungen_v6", JSON.stringify(bestellungen)); }
+      function loadLS() {
+        const s = localStorage.getItem("gastro_bestellungen_v6");
+        if (s) {
+          bestellungen = JSON.parse(s);
+          nextId = bestellungen.length > 0 ? Math.max(...bestellungen.map(b => b.id)) + 1 : 1;
+        }
+        renderAllLists();
+      }
+
+      // ========== WARENKORB ==========
+      function getGesamt() { return warenkorb.reduce((s, i) => s + i.preis * i.menge, 0); }
+
+      function addProdukt(produktName) {
+        const prod = PRODUKTE.find(p => p.name === produktName);
+        if (!prod) return;
+        const existing = warenkorb.find(i => i.produktName === produktName);
+        if (existing) {
+          existing.menge++;
+        } else {
+          warenkorb.push({ produktName, preis: prod.preis, menge: 1, sonderwunsch: "" });
+        }
+        renderWarenkorb();
+        renderProduktGrid();
+        updateKasseFooter();
+        if (navigator.vibrate) navigator.vibrate(8);
+      }
+
+      function removeProdukt(produktName) {
+        warenkorb = warenkorb.filter(i => i.produktName !== produktName);
+        renderWarenkorb();
+        renderProduktGrid();
+        updateKasseFooter();
+      }
+
+      function setMenge(produktName, delta) {
+        const item = warenkorb.find(i => i.produktName === produktName);
+        if (!item) return;
+        item.menge = Math.max(1, item.menge + delta);
+        renderWarenkorb();
+        renderProduktGrid();
+        updateKasseFooter();
+      }
+
+      function updateSonderwunsch(produktName, val) {
+        const item = warenkorb.find(i => i.produktName === produktName);
+        if (item) item.sonderwunsch = val;
+      }
+
+      function resetWarenkorb() {
+        warenkorb = [];
+        guestNameInput.value = "";
+        receivedInput.value = "";
+        editModeId = null;
+        saveBtn.innerHTML = '<i class="fas fa-check"></i> Bestellung aufnehmen';
+        renderWarenkorb();
+        renderProduktGrid();
+        updateKasseFooter();
+        guestNameInput.focus();
+      }
+
+      function renderWarenkorb() {
+        // Leer-Zustand
+        if (warenkorb.length === 0) {
+          warenkorbLeer.style.display = "flex";
+          // Entferne alle Items außer leer-div
+          Array.from(warenkorbListe.children).forEach(c => {
+            if (c !== warenkorbLeer) c.remove();
+          });
+          return;
+        }
+        warenkorbLeer.style.display = "none";
+
+        // Items neu aufbauen (einfacher als diffing)
+        Array.from(warenkorbListe.children).forEach(c => {
+          if (c !== warenkorbLeer) c.remove();
+        });
+
+        warenkorb.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "warenkorb-item";
+          div.innerHTML = `
+            <div class="wi-top">
+              <span class="wi-name">${escapeHtml(item.produktName)}</span>
+              <button class="wi-entfernen" data-name="${escapeHtml(item.produktName)}" title="Entfernen">
+                <i class="fas fa-times-circle"></i>
+              </button>
+            </div>
+            <div class="wi-bottom">
+              <div class="wi-menge-ctrl">
+                <button class="wi-menge-btn minus" data-name="${escapeHtml(item.produktName)}">−</button>
+                <span class="wi-menge-zahl">${item.menge}</span>
+                <button class="wi-menge-btn plus" data-name="${escapeHtml(item.produktName)}">+</button>
+              </div>
+              <span class="wi-preis">${fmt(item.preis * item.menge)}</span>
+            </div>
+            <textarea class="wi-sonder" placeholder="Sonderwunsch..." data-name="${escapeHtml(item.produktName)}" rows="1">${escapeHtml(item.sonderwunsch)}</textarea>
+          `;
+          warenkorbListe.appendChild(div);
+        });
+
+        // Events
+        warenkorbListe.querySelectorAll(".wi-entfernen").forEach(btn => {
+          btn.onclick = () => removeProdukt(btn.dataset.name);
+        });
+        warenkorbListe.querySelectorAll(".wi-menge-btn.minus").forEach(btn => {
+          btn.onclick = () => setMenge(btn.dataset.name, -1);
+        });
+        warenkorbListe.querySelectorAll(".wi-menge-btn.plus").forEach(btn => {
+          btn.onclick = () => setMenge(btn.dataset.name, +1);
+        });
+        warenkorbListe.querySelectorAll(".wi-sonder").forEach(ta => {
+          ta.oninput = () => updateSonderwunsch(ta.dataset.name, ta.value);
+        });
+      }
+
+      function updateKasseFooter() {
+        const gesamt  = getGesamt();
+        const erhalten = parseFloat(receivedInput.value) || 0;
+        const rueckgeld = erhalten - gesamt;
+
+        gesamtBetragEl.textContent = fmt(gesamt);
+
+        // Rückgeld
+        rueckgeldEl.textContent = fmt(Math.abs(rueckgeld));
+        rueckgeldZeile.querySelector(".rueckgeld-label").innerHTML =
+          rueckgeld < 0
+            ? '<i class="fas fa-triangle-exclamation"></i> Fehlbetrag'
+            : '<i class="fas fa-exchange-alt"></i> Rückgeld';
+        rueckgeldZeile.classList.toggle("negativ", rueckgeld < 0 && erhalten > 0);
+
+        // Kassieren-Button
+        const kannSpeichern = warenkorb.length > 0 && !!guestNameInput.value.trim();
+        saveBtn.classList.toggle("inaktiv", !kannSpeichern);
+      }
+
+      // ========== PRODUKT-GRID ==========
+      function renderKategorieBar() {
+        kategorieBar.innerHTML = "";
+        KATEGORIEN.forEach(kat => {
+          const btn = document.createElement("button");
+          btn.className = "kat-pill" + (kat === aktiveKat ? " aktiv" : "");
+          btn.textContent = kat;
+          btn.onclick = () => {
+            aktiveKat = kat;
+            renderKategorieBar();
+            renderProduktGrid();
+          };
+          kategorieBar.appendChild(btn);
+        });
+      }
+
+      function renderProduktGrid() {
+        const gefiltert = aktiveKat === "Alle"
+          ? PRODUKTE
+          : PRODUKTE.filter(p => p.kat === aktiveKat);
+
+        produktGrid.innerHTML = "";
+        gefiltert.forEach(prod => {
+          const imWk = warenkorb.find(i => i.produktName === prod.name);
+          const menge = imWk ? imWk.menge : 0;
+          const btn = document.createElement("button");
+          btn.className = "produkt-btn" + (menge > 0 ? " im-warenkorb" : "");
+          if (menge > 0) btn.setAttribute("data-menge", "×" + menge);
+          btn.innerHTML = `
+            <span class="produkt-btn-name">${escapeHtml(prod.kurzname)}</span>
+            <span class="produkt-btn-preis">${prod.preis === 0 ? "gratis" : fmt(prod.preis)}</span>
+          `;
+          btn.onclick = () => addProdukt(prod.name);
+          produktGrid.appendChild(btn);
+        });
+      }
+
+      // ========== BESTELLUNG SPEICHERN ==========
+      function saveOrder() {
+        const name = guestNameInput.value.trim();
+        if (!name)            { showToast("Bitte Namen eingeben"); return; }
+        if (warenkorb.length === 0) { showToast("Warenkorb ist leer"); return; }
+
+        const gesamt   = getGesamt();
+        const erhalten = parseFloat(receivedInput.value) || 0;
+        const rueckgeld = erhalten - gesamt;
+
+        if (erhalten > 0 && erhalten < gesamt) {
+          showToast(`Achtung: Betrag (${fmt(erhalten)}) < Preis (${fmt(gesamt)})`, 2800);
+        }
+
+        // Artikel-Array für Speicherung
+        const artikel = warenkorb.map(i => ({
+          produktName:  i.produktName,
+          preis:        i.preis,
+          menge:        i.menge,
+          sonderwunsch: i.sonderwunsch,
+        }));
+
+        // Für Rückwärtskompatibilität auch produktName/produktPreis/sonderwuensche belegen
+        const hauptArtikel = artikel[0];
+
+        const orderData = {
+          name,
+          artikel,
+          produktName:   hauptArtikel.produktName,
+          produktPreis:  hauptArtikel.preis,
+          sonderwuensche: artikel.map(a => a.sonderwunsch).filter(Boolean).join("; "),
+          gesamtPreis:   gesamt,
+          erhalten,
+          rueckgeld,
+          bearbeitet:    false,
+          timestamp:     Date.now(),
+        };
+
+        if (editModeId !== null) {
+          const idx = bestellungen.findIndex(b => b.id === editModeId);
+          if (idx !== -1) {
+            bestellungen[idx] = { ...orderData, id: editModeId, bearbeitet: bestellungen[idx].bearbeitet, timestamp: bestellungen[idx].timestamp };
+            showToast(`Bestellung von ${name} aktualisiert`);
+          }
+          editModeId = null;
+        } else {
+          bestellungen.push({ ...orderData, id: nextId++ });
+          showToast("Bestellung gespeichert!");
+        }
+
+        resetWarenkorb();
+        saveLS();
+        renderAllLists();
+
+        const nav = document.querySelector('.nav-item[data-view="activeOrdersView"]');
+        if (nav) { nav.classList.add("has-new"); setTimeout(() => nav.classList.remove("has-new"), 5500); }
+      }
+
+      // ========== LÖSCHEN ==========
+      function confirmDelete(id) {
+        showConfirmModal(
+          "Bestellung löschen?",
+          "Diese Aktion kann nicht rückgängig gemacht werden.",
+          () => {
+            bestellungen = bestellungen.filter(b => b.id !== id);
+            if (editModeId === id) resetWarenkorb();
+            saveLS(); renderAllLists(); showToast("Bestellung gelöscht");
+          }, "Löschen", "Abbrechen", true
+        );
+      }
+
+      // ========== BEARBEITEN ==========
+      function editOrder(id) {
+        const order = bestellungen.find(b => b.id === id);
+        if (!order) return;
+        setActiveView("kasseView");
+        guestNameInput.value = order.name;
+        receivedInput.value = order.erhalten || "";
+
+        // Warenkorb aus artikel-Array wiederherstellen
+        if (order.artikel && order.artikel.length > 0) {
+          warenkorb = order.artikel.map(a => ({ ...a, sonderwunsch: a.sonderwunsch || "" }));
+        } else {
+          // Rückwärtskompatibilität: alte Einzel-Bestellungen
+          warenkorb = [{ produktName: order.produktName, preis: order.produktPreis, menge: 1, sonderwunsch: order.sonderwuensche || "" }];
+        }
+
+        editModeId = order.id;
+        saveBtn.innerHTML = '<i class="fas fa-pen"></i> Aktualisieren';
+        renderWarenkorb();
+        renderProduktGrid();
+        updateKasseFooter();
+        showToast(`Bearbeite: ${order.name}`);
+      }
+
+      // ========== ERLEDIGT ==========
+      function markAsBearbeitet(id) {
+        const order = bestellungen.find(b => b.id === id);
+        if (order && !order.bearbeitet) {
+          order.bearbeitet = true;
+          saveLS(); renderAllLists();
+          showToast(`„${order.name}" als erledigt markiert`);
+          if (navigator.vibrate) navigator.vibrate(30);
+        }
+      }
+
+      function alleErledigen() {
+        const offen = bestellungen.filter(b => !b.bearbeitet);
+        if (!offen.length) { showToast("Alle bereits erledigt"); return; }
+        showConfirmModal(
+          "Alle erledigen?",
+          `${offen.length} offene Bestellung(en) als erledigt markieren?`,
+          () => {
+            bestellungen.forEach(b => { b.bearbeitet = true; });
+            saveLS(); renderAllLists();
+            showToast("Alle als erledigt markiert");
+            if (navigator.vibrate) navigator.vibrate([30,50,30]);
+          }, "Alle erledigen", "Abbrechen", false
+        );
+      }
+
+      // ========== RENDER BESTELLLISTE ==========
+      function renderActiveOrders() {
+        let orders = [...bestellungen].sort((a,b) => b.id - a.id);
+        if (aktiverFilter === "offen")    orders = orders.filter(o => !o.bearbeitet);
+        if (aktiverFilter === "erledigt") orders = orders.filter(o =>  o.bearbeitet);
+
+        if (orders.length === 0) {
+          const msg = bestellungen.length === 0
+            ? "Noch keine Bestellungen."
+            : aktiverFilter === "offen" ? "Keine offenen Bestellungen." : "Noch keine Bestellung erledigt.";
+          activeContainer.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-inbox fa-2x" style="opacity:0.25"></i>
+              <p>${msg}</p>
+              ${bestellungen.length === 0 ? `<button class="btn-goto" onclick="setActiveView('kasseView')"><i class="fas fa-plus"></i> Neue Bestellung</button>` : ""}
+            </div>`;
+          return;
+        }
+
+        let html = "";
+        orders.forEach(order => {
+          const cardClass = order.bearbeitet ? "processed" : "unprocessed";
+          const badge = order.bearbeitet
+            ? `<span class="status-badge processed"><i class="fas fa-check-circle"></i> Erledigt</span>`
+            : `<span class="status-badge open"><i class="fas fa-clock"></i> Offen</span>`;
+          const zeit = order.timestamp
+            ? `<span class="order-time"><i class="fas fa-clock" style="font-size:0.6rem"></i> ${formatTime(order.timestamp)}</span>`
+            : "";
+
+          // Artikel-Liste aufbauen
+          let artikelHtml = "";
+          if (order.artikel && order.artikel.length > 0) {
+            order.artikel.forEach(a => {
+              const mengeLabel = a.menge > 1 ? `${a.menge}× ` : "";
+              artikelHtml += `<div class="artikel-zeile">
+                <span><i class="fas fa-utensils" style="opacity:0.5;font-size:0.7rem"></i> ${mengeLabel}${escapeHtml(a.produktName)}</span>
+                <span class="preis-col">${fmt(a.preis * a.menge)}</span>
+              </div>`;
+              if (a.sonderwunsch) {
+                artikelHtml += `<div class="sonder-zeile"><i class="fas fa-comment-dots" style="opacity:0.5;font-size:0.65rem"></i> ${escapeHtml(a.sonderwunsch)}</div>`;
+              }
+            });
+          } else {
+            // Rückwärtskompatibilität
+            artikelHtml = `<div class="artikel-zeile">
+              <span><i class="fas fa-utensils" style="opacity:0.5;font-size:0.7rem"></i> ${escapeHtml(order.produktName)}</span>
+              <span class="preis-col">${fmt(order.produktPreis || 0)}</span>
+            </div>`;
+            if (order.sonderwuensche) {
+              artikelHtml += `<div class="sonder-zeile"><i class="fas fa-comment-dots" style="opacity:0.5;font-size:0.65rem"></i> ${escapeHtml(order.sonderwuensche)}</div>`;
+            }
+          }
+
+          const rueckgeldStyle = order.rueckgeld < 0 ? 'style="color:#dc3545"' : "";
+
+          html += `
+            <div class="order-card ${cardClass}" data-id="${order.id}">
+              <div class="order-card-content">
+                <div class="order-header">
+                  <div class="header-left">
+                    ${badge}
+                    <div class="order-meta">
+                      <span class="customer-name">#${order.id} — ${escapeHtml(order.name)}</span>
+                      ${zeit}
+                    </div>
+                  </div>
+                  <div class="header-right">
+                    <button class="icon-btn edit-order" data-id="${order.id}" title="Bearbeiten"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="icon-btn delete delete-order" data-id="${order.id}" title="Löschen"><i class="fas fa-trash-alt"></i></button>
+                  </div>
+                </div>
+                <div class="order-artikel-liste">${artikelHtml}</div>
+                <div class="payment-info">
+                  <span><i class="fas fa-euro-sign"></i> ${fmt(order.gesamtPreis)}</span>
+                  <span><i class="fas fa-hand-holding-dollar"></i> ${fmt(order.erhalten)}</span>
+                  <span ${rueckgeldStyle}><i class="fas fa-exchange-alt"></i> ${fmt(order.rueckgeld)}</span>
+                </div>
+              </div>
+              ${!order.bearbeitet
+                ? `<button class="mark-processed-btn" data-id="${order.id}"><i class="fas fa-check-circle"></i> Als erledigt markieren</button>`
+                : `<div class="mark-processed-btn done"><i class="fas fa-check-circle"></i> Erledigt</div>`}
+            </div>`;
+        });
+
+        activeContainer.innerHTML = html;
+
+        activeContainer.querySelectorAll(".edit-order").forEach(btn => {
+          btn.onclick = e => { e.stopImmediatePropagation(); editOrder(parseInt(btn.dataset.id)); };
+        });
+        activeContainer.querySelectorAll(".delete-order").forEach(btn => {
+          btn.onclick = e => { e.stopImmediatePropagation(); confirmDelete(parseInt(btn.dataset.id)); };
+        });
+        activeContainer.querySelectorAll(".mark-processed-btn:not(.done)").forEach(btn => {
+          btn.onclick = e => { e.stopImmediatePropagation(); markAsBearbeitet(parseInt(btn.dataset.id)); };
+        });
+      }
+
+      function renderAllLists() { renderActiveOrders(); }
+
+      // ========== PDF EXPORT ==========
+      function exportAllToPDF() {
+        if (!bestellungen.length) { showToast("Keine Bestellungen zum Exportieren"); return; }
+        document.getElementById("exportModal").style.display = "flex";
+      }
+
+      function generateCustomPDF() {
+        const inclName    = document.getElementById("includeName").checked;
+        const inclSpecial = document.getElementById("includeSpecial").checked;
+        const inclPay     = document.getElementById("includePayment").checked;
+
+        let totalSum = 0, totalReceived = 0, totalChange = 0;
+        bestellungen.forEach(b => { totalSum += b.gesamtPreis; totalReceived += b.erhalten; totalChange += b.rueckgeld; });
+
+        let rows = "";
+        bestellungen.forEach(b => {
+          const artikelText = b.artikel
+            ? b.artikel.map(a => `${a.menge > 1 ? a.menge+"× " : ""}${a.produktName}${a.sonderwunsch ? " ("+a.sonderwunsch+")" : ""}`).join(", ")
+            : b.produktName;
+          const nameCell = inclName
+            ? `<td style="border:1px solid #ccc;padding:6px">${escapeHtml(b.name)}</td>`
+            : `<td style="border:1px solid #ccc;padding:6px;color:#888">—</td>`;
+          const payCells = inclPay
+            ? `<td style="border:1px solid #ccc;padding:6px;text-align:right">${b.gesamtPreis.toFixed(2)} €</td>
+               <td style="border:1px solid #ccc;padding:6px;text-align:right">${b.erhalten.toFixed(2)} €</td>
+               <td style="border:1px solid #ccc;padding:6px;text-align:right">${b.rueckgeld.toFixed(2)} €</td>`
+            : `<td style="border:1px solid #ccc;padding:6px;text-align:right">${b.gesamtPreis.toFixed(2)} €</td>
+               <td colspan="2" style="border:1px solid #ccc;padding:6px;text-align:center;color:#888">—</td>`;
+          rows += `<tr>
+            <td style="border:1px solid #ccc;padding:6px;font-weight:bold">#${b.id}</td>
+            ${nameCell}
+            <td style="border:1px solid #ccc;padding:6px">${escapeHtml(artikelText)}</td>
+            ${payCells}
+            <td style="border:1px solid #ccc;padding:6px;text-align:center">${b.bearbeitet ? "✓" : "—"}</td>
+          </tr>`;
+        });
+
+        const heute = new Date().toLocaleDateString("de-DE", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+        const pdfHtml = `<html><head><meta charset="UTF-8"><title>Tagesbericht</title>
+          <style>body{font-family:system-ui;padding:20px}h1{color:#a5c970}
+          table{width:100%;border-collapse:collapse;margin-top:16px}
+          th,td{border:1px solid #aaa;padding:6px;text-align:left;font-size:12px}
+          th{background:#f1f3f5}.summe{margin-top:12px;font-weight:bold;font-size:13px}</style>
+          </head><body>
+          <h1>Tagesbericht Bestellungen</h1>
+          <p><strong>Datum:</strong> ${heute} &nbsp;|&nbsp; <strong>Anzahl:</strong> ${bestellungen.length}</p>
+          <table>
+            <thead><tr><th>Nr.</th><th>Gast</th><th>Artikel</th><th>Preis</th><th>Erhalten</th><th>Rückgeld</th><th>Erledigt</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="summe">Gesamtumsatz: ${totalSum.toFixed(2)} €</div>
+          <div class="summe">Insgesamt erhalten: ${totalReceived.toFixed(2)} €</div>
+          <div class="summe">Gesamtrückgeld: ${totalChange.toFixed(2)} €</div>
+          </body></html>`;
+
+        document.getElementById("printSection").innerHTML = pdfHtml;
+        document.getElementById("exportModal").style.display = "none";
+        setTimeout(() => window.print(), 100);
+      }
+
+      // ========== NAVIGATION ==========
+      const topBarMeta = {
+        kasseView:        { icon: "fa-cash-register", title: "Bestellung erfassen" },
+        activeOrdersView: { icon: "fa-receipt",       title: "Bestellungen" },
+      };
+
+      function setActiveView(viewId) {
+        document.querySelectorAll(".view").forEach(v => v.classList.remove("active-view"));
+        document.getElementById(viewId).classList.add("active-view");
+        document.querySelectorAll(".nav-item").forEach(item => {
+          item.classList.toggle("active", item.dataset.view === viewId);
+        });
+        const m = topBarMeta[viewId];
+        if (m) {
+          document.getElementById("topBarTitle").textContent = m.title;
+          document.querySelector("#globalTopBar i").className = `fas ${m.icon}`;
+        }
+        if (viewId === "activeOrdersView") renderActiveOrders();
+      }
+
+      // ========== CONFIRM MODAL ==========
+      function showConfirmModal(title, msg, onConfirm, confirmTxt="Bestätigen", cancelTxt="Abbrechen", destructive=true) {
+        document.getElementById("confirmModalTitle").textContent   = title;
+        document.getElementById("confirmModalMessage").textContent = msg;
+        const cb = document.getElementById("confirmModalConfirm");
+        const cc = document.getElementById("confirmModalCancel");
+        cb.textContent = confirmTxt; cc.textContent = cancelTxt;
+        cb.style.background = destructive ? "#dc3545" : "#a5c970";
+        cb.style.color = "white";
+        confirmCallback = onConfirm;
+        document.getElementById("confirmModal").style.display = "flex";
+        setTimeout(() => cb.focus(), 100);
+      }
+      function hideConfirmModal() {
+        document.getElementById("confirmModal").style.display = "none";
+        confirmCallback = null;
+      }
+
+      // ========== ESCAPE ==========
+      function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;"})[m]||m);
+      }
+
+      // ========== INIT ==========
+      function init() {
+        // Produkt-Grid aufbauen
+        renderKategorieBar();
+        renderProduktGrid();
+
+        // Daten laden
+        loadLS();
+
+        // Name/Betrag → Footer aktualisieren
+        guestNameInput.addEventListener("input", updateKasseFooter);
+        receivedInput.addEventListener("input", updateKasseFooter);
+
+        // Quick-Cash
+        document.querySelectorAll(".cash-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            receivedInput.value = parseFloat(btn.dataset.value).toFixed(2);
+            document.querySelectorAll(".cash-btn").forEach(b => b.classList.remove("aktiv-cash"));
+            btn.classList.add("aktiv-cash");
+            updateKasseFooter();
+            if (navigator.vibrate) navigator.vibrate(8);
+          });
+        });
+        receivedInput.addEventListener("input", () => {
+          document.querySelectorAll(".cash-btn").forEach(b => b.classList.remove("aktiv-cash"));
+        });
+
+        // Speichern — zeigt Toast wenn Pflichtfelder fehlen
+        saveBtn.addEventListener("click", () => {
+          if (!guestNameInput.value.trim() && warenkorb.length === 0) {
+            showToast("Bitte Namen eingeben und ein Produkt wählen");
+          } else if (!guestNameInput.value.trim()) {
+            showToast("Bitte Namen eingeben");
+          } else if (warenkorb.length === 0) {
+            showToast("Bitte mindestens ein Produkt wählen");
+          } else {
+            saveOrder();
+          }
+        });
+
+        // Reset
+        resetFormBtn.addEventListener("click", () => {
+          const hatInhalt = warenkorb.length > 0 || guestNameInput.value.trim();
+          if (hatInhalt) {
+            showConfirmModal(
+              "Alles zurücksetzen?",
+              "Name und Warenkorb werden geleert.",
+              () => { resetWarenkorb(); showToast("Zurückgesetzt"); },
+              "Zurücksetzen", "Abbrechen", false
+            );
+          } else {
+            resetWarenkorb();
+          }
+        });
+
+        // Navigation
+        document.querySelectorAll(".nav-item").forEach(btn => {
+          btn.addEventListener("click", () => {
+            if (btn.dataset.view) setActiveView(btn.dataset.view);
+          });
+        });
+
+        // Pill-Filter
+        document.querySelectorAll(".pill").forEach(pill => {
+          pill.addEventListener("click", () => {
+            document.querySelectorAll(".pill").forEach(p => p.classList.remove("active-pill"));
+            pill.classList.add("active-pill");
+            aktiverFilter = pill.dataset.filter;
+            renderActiveOrders();
+          });
+        });
+
+        // Alle erledigen
+        document.getElementById("alleErledigtBtn").addEventListener("click", alleErledigen);
+
+        // PDF
+        document.getElementById("pdfActiveBtn").addEventListener("click", exportAllToPDF);
+        document.getElementById("cancelExportBtn").addEventListener("click", () => {
+          document.getElementById("exportModal").style.display = "none";
+        });
+        document.getElementById("generatePDFBtn").addEventListener("click", generateCustomPDF);
+
+        // Confirm Modal
+        document.getElementById("confirmModalConfirm").onclick = () => { if (confirmCallback) confirmCallback(); hideConfirmModal(); };
+        document.getElementById("confirmModalCancel").onclick  = hideConfirmModal;
+        document.getElementById("confirmModal").onclick = e => { if (e.target.id === "confirmModal") hideConfirmModal(); };
+        document.getElementById("exportModal").onclick = e => { if (e.target.id === "exportModal") document.getElementById("exportModal").style.display = "none"; };
+        document.addEventListener("keydown", e => {
+          if (e.key === "Escape") {
+            hideConfirmModal();
+            document.getElementById("exportModal").style.display = "none";
+          }
+        });
+
+        setActiveView("kasseView");
+      }
+
+      init();
+    </script>
+  </body>
+</html>
