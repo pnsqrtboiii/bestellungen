@@ -898,7 +898,12 @@
         .mark-processed-btn.done { border-left: 1.5px dashed var(--erledigt-border); }
       }
     </style>
-  </head>
+    <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+  </script>
+</head>
   <body>
 
     <!-- TOP-BAR -->
@@ -1711,14 +1716,6 @@
       }
 
       init();
-    </script>
-
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./sw.js").catch(() => {});
-        });
-      }
     </script>
   </body>
 </html>
